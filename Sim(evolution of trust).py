@@ -5,14 +5,16 @@ import random
 import time
 import math
 import threading
+import matplotlib.pyplot as plt
 from copy import deepcopy
 
 class Person(abc.ABC):
 
-	persons = []
+	people = []
 	radius = 10
 	speed = 5
 	screen = None
+	actual_people = {}
 
 	#colors
 	c_red = (179, 27, 0)
@@ -21,13 +23,12 @@ class Person(abc.ABC):
 	c_pink = (227, 0, 227)
 	c_blue = (0, 181, 217)
 
-	def __init__(self, color, pos, dir):
+	def __init__(self, pos, dir):
 		self.dir = dir
 		self.pos = pos
 		self.collide = False
 		self.last_collided = None
-		self.color = color
-		Person.persons.append(self)
+		Person.people.append(self)
 
 	def draw(self, color):
 		pygame.draw.circle(Person.screen, color, (self.pos[0], self.pos[1]), Person.radius)
@@ -66,14 +67,14 @@ class Person(abc.ABC):
 		if not self.collide:
 			self.new_dir()
 			self.move()
-			self.draw(self.color)
+			self.draw(self.__class__.color)
 			t1 = threading.Thread(target=self.collision, args=[3])
 			t1.start()
 		else:
-			self.draw(self.color)
+			self.draw(self.__class__.color)
 
 	def collision(self, num):
-		for x in Person.persons:
+		for x in Person.people:
 			if x != self and self.last_collided != x and not x.collide:
 				if math.sqrt((self.pos[0] - x.pos[0]) ** 2 + (self.pos[1] - x.pos[1]) ** 2) < Person.radius * 2:
 					self.last_collided = x
@@ -95,21 +96,24 @@ class Person(abc.ABC):
 
 	@staticmethod
 	def check_evolution(time_v = 30):
-		while len(Person.persons) > 0:
+		while len(Person.people) > 0:
 			time.sleep(time_v)
-			num = round(len(Person.persons)/10)
-			best_num = sorted(Person.persons, key=lambda x: x.points, reverse=True)[:num]
+			num = round(len(Person.people)/10)
+			best_num = sorted(Person.people, key=lambda x: x.points, reverse=True)[:num]
 			print(f"Best: {best_num}")
-			worst_num = sorted(Person.persons, key=lambda x: x.points, reverse=False)[:num]
+			worst_num = sorted(Person.people, key=lambda x: x.points, reverse=False)[:num]
 			print(f"Worst: {worst_num[::-1]}\n")
 
 			for x in best_num:
 				x.__class__([random.randrange(50,450), random.randrange(50,450)])
 			for x in worst_num:
-				Person.persons.remove(x)
-				x.__class__.persons.remove(x)
+				Person.people.remove(x)
+				x.__class__.people.remove(x)
 
-			for x in Person.persons:
+			#get data for chart
+			Person.get_actual_people()
+
+			for x in Person.people:
 				x.points = 0
 
 			Black.points = 0
@@ -117,15 +121,35 @@ class Person(abc.ABC):
 			Blue.points = 0
 			# change when adding new person
 
+	@staticmethod
+	def show_chart(dic):
+		fig = plt.figure()
+		x = range(0, len(next(iter(dic.values()))))
+		for key, value in dic.items():
+			plt.scatter(x, value)
+		plt.show()
+
+	@staticmethod
+	def get_actual_people():
+		for a_class in Person.actual_people:
+			Person.actual_people[a_class].append(len(a_class.people))
+
+	@staticmethod
+	def fill_actual_people():
+		for person in Person.people:
+			if person.__class__.__name__ not in Person.actual_people:
+				Person.actual_people[person.__class__] = []
+
 class Black(Person):
 
-	persons = []
+	people = []
 	points = 0
+	color = Person.c_black
 
 	def __init__(self, pos = [10, 10], dir = [0, 1], points = 0):
-		super(Black, self).__init__(Person.c_black, pos, dir)
+		super(Black, self).__init__(pos, dir)
 		self.points = points
-		Black.persons.append(self)
+		Black.people.append(self)
 
 	def __str__(self):
 		return f"Black; {self.points}p; {self.pos}"
@@ -142,18 +166,19 @@ class Black(Person):
 			Black.points += 3 * num
 		elif x.__class__.__name__ == "Blue":
 			self.points += 3 + 0 * num
-			Pink.points += 3 + 0 * num
-	# change when adding new person
+			Black.points += 3 + 0 * num
+		# change when adding new person
 
 class Pink(Person):
 
-	persons = []
+	people = []
 	points = 0
+	color = Person.c_pink
 
 	def __init__(self, pos = [10, 10], dir = [0, 1], points = 0):
-		super(Pink, self).__init__(Person.c_pink, pos, dir)
+		super(Pink, self).__init__(pos, dir)
 		self.points = points
-		Pink.persons.append(self)
+		Pink.people.append(self)
 
 	def __str__(self):
 		return f"Pink; {self.points}p; {self.pos}"
@@ -171,18 +196,19 @@ class Pink(Person):
 		elif x.__class__.__name__ == "Blue":
 			self.points += 2 * num
 			Pink.points += 2 * num
-	# change when adding new person
+		# change when adding new person
 
 class Blue(Person):
 
-	persons = []
+	people = []
 	points = 0
+	color = Person.c_blue
 
 	def __init__(self, pos = [10, 10], dir = [0, 1], points = 0):
-		super(Blue, self).__init__(Person.c_blue, pos, dir)
+		super(Blue, self).__init__(pos, dir)
 		# change when adding new person
 		self.points = points
-		Blue.persons.append(self)
+		Blue.people.append(self)
 		# change when adding new person
 
 	def __str__(self):
@@ -201,13 +227,7 @@ class Blue(Person):
 		elif x.__class__.__name__ == "Blue":
 			self.points += 2 * num
 			Blue.points += 2 * num
-	# change when adding new person
-
-def exit():
-	for x in Person.persons:
-		del x
-	pygame.quit()
-	sys.exit()
+		# change when adding new person
 
 def main():
 	# init
@@ -232,7 +252,7 @@ def main():
 					actual_person = Pink
 				if event.key == pygame.K_d:
 					actual_person = Blue
-		# change when adding new person
+				# change when adding new person
 				if event.key == pygame.K_c:
 					actual_person = None
 				if event.key == pygame.K_r:
@@ -253,21 +273,23 @@ def main():
 		screen.blit(text_surface, (5, 40))
 		# change when adding new person
 
-		for person in Person.persons:
+		for person in Person.people:
 			person.draw(person.color)
 
 		pygame.display.flip()
 
 	# simulation
-	t1 = threading.Thread(target=Person.persons[0].check_evolution, args=[10])
+	t1 = threading.Thread(target=Person.people[0].check_evolution, args=[10])
 	t1.daemon = True
 	t1.start()
+	Person.fill_actual_people()
+	Person.get_actual_people()
 
 	running = True
 	while running:
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
-				exit()
+				running = False
 
 		screen.fill((255,255,255))
 		text_surface = font.render(f"{Black.points} points for 'Black'", False, Person.c_black)
@@ -276,21 +298,21 @@ def main():
 		screen.blit(text_surface, (5, 20))
 		text_surface = font.render(f"{Blue.points} points for 'Blue'", False, Person.c_black)
 		screen.blit(text_surface, (5, 40))
-		text_surface = font.render(f"{len(Black.persons)} 'Black' person", False, Person.c_black)
+		text_surface = font.render(f"{len(Black.people)} 'Black' person", False, Person.c_black)
 		screen.blit(text_surface, (5, 60))
-		text_surface = font.render(f"{len(Pink.persons)} 'Pink' person", False, Person.c_black)
+		text_surface = font.render(f"{len(Pink.people)} 'Pink' person", False, Person.c_black)
 		screen.blit(text_surface, (5, 80))
-		text_surface = font.render(f"{len(Blue.persons)} 'Blue' person", False, Person.c_black)
+		text_surface = font.render(f"{len(Blue.people)} 'Blue' person", False, Person.c_black)
 		screen.blit(text_surface, (5, 100))
 		# change when adding new person
 
-		for person in Person.persons:
+		for person in Person.people:
 			person.move_in_one()
 
 		pygame.display.flip()
 
-		#time.sleep(1/10)
-
-	exit()
+	pygame.quit()
+	Person.show_chart(Person.actual_people)
+	sys.exit()
 
 main()
