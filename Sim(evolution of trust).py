@@ -1,5 +1,7 @@
 import pygame
+pygame.init()
 import sys
+import os
 import abc
 import random
 import time
@@ -105,9 +107,7 @@ class Person(abc.ABC):
 		while len(Person.people) > 0:
 			num = round(len(Person.people)/10)
 			best_num = sorted(Person.people, key=lambda x: x.points, reverse=True)[:num]
-			print(f"Best: {best_num}")
 			worst_num = sorted(Person.people, key=lambda x: x.points, reverse=False)[:num]
-			print(f"Worst: {worst_num[::-1]}\n")
 
 			for x in best_num:
 				x.__class__([random.randrange(50,450), random.randrange(50,450)])
@@ -161,6 +161,7 @@ class Person(abc.ABC):
 
 	@staticmethod
 	def fill_actual_people() -> None:
+		Person.actual_people = {}
 		for person in Person.people:
 			if person.__class__.__name__ not in Person.actual_people:
 				Person.actual_people[person.__class__] = []
@@ -368,6 +369,7 @@ if __name__ == "__main__":
 	# console
 	console = True
 	while console:
+		print()
 		msg = input(f"What do you want to do? (you can use help to see all commands): ").strip().lower()
 		print()
 
@@ -380,11 +382,11 @@ if __name__ == "__main__":
 			print(f"test(t) - Simulate some examples with random number of people.")
 			print(f"find(f) - Find a starting position for a color to win.")
 			print(f"guess(g) - Make a starting position and let the AI guess the outcome.")
-			print()
 		elif msg == "description" or msg == "d":
-			print(f"Work in progress.\n")
+			print(f"Work in progress.")
 		elif msg == "exit" or msg == "e":
 			print(f"Exiting from program")
+			pygame.quit()
 			sys.exit()
 		elif msg == "show" or msg == "s":
 			path = input(f"Give the file path to show(Base is 'stats.txt'): ")
@@ -435,13 +437,13 @@ if __name__ == "__main__":
 				print(f"Unknow error.")
 		elif msg == "basic" or msg == "b":
 			path = input(f"Do you want to save to file(if yes give path. Base is 'stats.txt'): ")
+
 			# prepare
-			# init
-			pygame.init()
+			pygame.display.init()
 			screen = pygame.display.set_mode((500,500), pygame.RESIZABLE)
-			pygame.display.set_caption("Evolution of Trust Simulation")
+			pygame.display.set_caption("Evolution of Trust Simulation (basic)")
 			pygame.font.init()
-			font = pygame.font.SysFont('Times New Roman', 18)
+			font = pygame.font.SysFont("Times New Roman", 18)
 			Person.screen = screen
 
 			actual_person = None
@@ -449,8 +451,7 @@ if __name__ == "__main__":
 			while prepare:
 				for event in pygame.event.get():
 					if event.type == pygame.QUIT:
-						pygame.quit()
-						sys.exit()
+						prepare = False
 					if event.type == pygame.KEYDOWN:
 						if event.key == pygame.K_a:
 							actual_person = Black
@@ -482,12 +483,15 @@ if __name__ == "__main__":
 									temp_pos[0] += random.randint(-96, 96)
 									temp_pos[1] += random.randint(-54, 54)
 
-								actual_person(list(temp_pos))
+								actual_person(temp_pos)
 								del temp_pos
 					if event.type == pygame.VIDEORESIZE:
 						scr_size = event.size
 						screen = pygame.display.set_mode(scr_size, pygame.RESIZABLE)
 						del scr_size
+
+				if not prepare:
+					break
 
 				screen.fill((255,255,255))
 				text_surface = font.render(f"Press 'A-G' for person", False, Person.c_black)
@@ -513,155 +517,166 @@ if __name__ == "__main__":
 			del prepare
 
 			if len(Person.people) == 0:
-				print(f"No people present. Simulation shutting down.")
-				pygame.quit()
+				print(f"No people present. Can't start simulation.")
+				pygame.display.quit()
 
 			# simulation
-			t1 = threading.Thread(target=Person.people[0].check_evolution, args=[5])
-			t1.daemon = True
-			t1.start()
-			Person.fill_actual_people()
-			Person.get_actual_people()
+			if len(Person.people) > 0:
+				t1 = threading.Thread(target=Person.people[0].check_evolution, args=[5])
+				t1.daemon = True
+				t1.start()
+				Person.fill_actual_people()
+				Person.get_actual_people()
 
-			running = True
-			while running:
-				for event in pygame.event.get():
-					if event.type == pygame.QUIT:
-						running = False
+				running = True
+				while running:
+					for event in pygame.event.get():
+						if event.type == pygame.QUIT:
+							running = False
 
-				# points
-				screen.fill((255,255,255))
-				text_surface = font.render(f"{Black.points} points for 'Black'", False, Person.c_black)
-				screen.blit(text_surface, (5, 0))
-				text_surface = font.render(f"{Pink.points} points for 'Pink'", False, Person.c_black)
-				screen.blit(text_surface, (5, 20))
-				text_surface = font.render(f"{Blue.points} points for 'Blue'", False, Person.c_black)
-				screen.blit(text_surface, (5, 40))
-				text_surface = font.render(f"{Brown.points} points for 'Brown'", False, Person.c_black)
-				screen.blit(text_surface, (5, 60))
-				text_surface = font.render(f"{Green.points} points for 'Green'", False, Person.c_black)
-				screen.blit(text_surface, (5, 80))
-				# counts
-				w, h = screen.get_size()
-				text_surface = font.render(f"{len(Black.people)} 'Black' person", False, Person.c_black)
-				screen.blit(text_surface, (w - text_surface.get_rect().width, 0))
-				text_surface = font.render(f"{len(Pink.people)} 'Pink' person", False, Person.c_black)
-				screen.blit(text_surface, (w - text_surface.get_rect().width, 20))
-				text_surface = font.render(f"{len(Blue.people)} 'Blue' person", False, Person.c_black)
-				screen.blit(text_surface, (w - text_surface.get_rect().width, 40))
-				text_surface = font.render(f"{len(Brown.people)} 'Brown' person", False, Person.c_black)
-				screen.blit(text_surface, (w - text_surface.get_rect().width, 60))
-				text_surface = font.render(f"{len(Green.people)} 'Green' person", False, Person.c_black)
-				screen.blit(text_surface, (w - text_surface.get_rect().width, 80))
-				# change when adding new person
+					# points
+					screen.fill((255,255,255))
+					text_surface = font.render(f"{Black.points} points for 'Black'", False, Person.c_black)
+					screen.blit(text_surface, (5, 0))
+					text_surface = font.render(f"{Pink.points} points for 'Pink'", False, Person.c_black)
+					screen.blit(text_surface, (5, 20))
+					text_surface = font.render(f"{Blue.points} points for 'Blue'", False, Person.c_black)
+					screen.blit(text_surface, (5, 40))
+					text_surface = font.render(f"{Brown.points} points for 'Brown'", False, Person.c_black)
+					screen.blit(text_surface, (5, 60))
+					text_surface = font.render(f"{Green.points} points for 'Green'", False, Person.c_black)
+					screen.blit(text_surface, (5, 80))
+					# counts
+					w, h = screen.get_size()
+					text_surface = font.render(f"{len(Black.people)} 'Black' person", False, Person.c_black)
+					screen.blit(text_surface, (w - text_surface.get_rect().width, 0))
+					text_surface = font.render(f"{len(Pink.people)} 'Pink' person", False, Person.c_black)
+					screen.blit(text_surface, (w - text_surface.get_rect().width, 20))
+					text_surface = font.render(f"{len(Blue.people)} 'Blue' person", False, Person.c_black)
+					screen.blit(text_surface, (w - text_surface.get_rect().width, 40))
+					text_surface = font.render(f"{len(Brown.people)} 'Brown' person", False, Person.c_black)
+					screen.blit(text_surface, (w - text_surface.get_rect().width, 60))
+					text_surface = font.render(f"{len(Green.people)} 'Green' person", False, Person.c_black)
+					screen.blit(text_surface, (w - text_surface.get_rect().width, 80))
+					# change when adding new person
 
-				for person in Person.people:
-					person.move_in_one()
+					for person in Person.people:
+						person.move_in_one()
 
-				pygame.display.flip()
+					pygame.display.flip()
 
-			del running
-			pygame.quit()
-			Person.del_people()
-			Person.show_chart(Person.actual_people)
-			file = Path(path)
-			if path.strip().lower() == "yes":
-				file = Path("Stats.txt")
-			elif file.is_file():
-				print(f"Saved to {path}")
-				Person.write_stats(Person.actual_people, path)
-			elif file.is_dir():
-				print(f"Path is directory, not file.")
-			elif not file.exists():
-				print(f"File doesn't exist.")
-			else:
-				print(f"Unknow error.")
+				del running
+				pygame.display.quit()
+				Person.del_people()
+				Person.show_chart(Person.actual_people)
+				t1.join()
+				file = Path(path)
+				if path.strip().lower() == "no":
+					pass
+				elif path.strip().lower() == "yes":
+					file = Path(f"{os.getcwd()}/stats.txt")
+					Person.write_stats(Person.actual_people, file)
+					print(f"Saved to stats.txt")
+				elif file.is_file():
+					print(f"Saved to {file}")
+					Person.write_stats(Person.actual_people, file)
+				elif file.is_dir():
+					print(f"Path is directory, not file.")
+				elif not file.exists():
+					print(f"File doesn't exist.")
+				else:
+					print(f"Unknow error.")
 		elif msg == "test" or msg == "t":
 			path = input(f"Do you want to save to file(if yes give path. Base is 'stats.txt'): ")
-			# prepare
+			count = input(f"How many simulations do you want to run?: ")
+
 			# init
-			pygame.init()
-			screen = pygame.display.set_mode((500,500), pygame.RESIZABLE)
+			pygame.display.init()
+			screen = pygame.display.set_mode((1920,1020), pygame.RESIZABLE)
 			pygame.display.set_caption("Evolution of Trust Simulation")
 			pygame.font.init()
 			font = pygame.font.SysFont('Times New Roman', 18)
 			Person.screen = screen
 
-			for _ in range(randrange(200)):
-				Black([random.randrange(50,), random.randrange(50,450)])
+			for _ in range(int(count)):
+				# prepare
+				w, h = screen.get_size()
+				for person in Person.__subclasses__():
+					for _ in range(random.randrange(10)):
+						pos = [random.randrange(50, w - 50), random.randrange(50, h - 50)]
+						for x in range(10):
+							temp_pos = list(pos)
+							temp_pos[0] += random.randint(-96, 96)
+							temp_pos[1] += random.randint(-54, 54)
+							# try till get a position inside screen
+							while not Person.in_map(temp_pos):
+								temp_pos = list(pos)
+								temp_pos[0] += random.randint(-96, 96)
+								temp_pos[1] += random.randint(-54, 54)
 
+							person(temp_pos)
+							del temp_pos
 
-			for person in Person.people:
-				person.draw(person.color)
+				# simulation
+				t1 = threading.Thread(target=Person.people[0].check_evolution, args=[5])
+				t1.daemon = True
+				t1.start()
+				Person.fill_actual_people()
+				Person.get_actual_people()
 
-			pygame.display.flip()
-
-			del prepare
-
-			if len(Person.people) == 0:
-				print(f"No people present. Simulation shutting down.")
-				pygame.quit()
-
-			# simulation
-			t1 = threading.Thread(target=Person.people[0].check_evolution, args=[5])
-			t1.daemon = True
-			t1.start()
-			Person.fill_actual_people()
-			Person.get_actual_people()
-
-			running = True
-			while running:
-				for event in pygame.event.get():
-					if event.type == pygame.QUIT:
+				running = True
+				while running:
+					if len(Person.people) == len(Black.people) or len(Person.people) == len(Pink.people) or len(Person.people) == len(Blue.people) or len(Person.people) == len(Brown.people) or len(Person.people) == len(Green.people) or len(next(iter(Person.actual_people.values()))) >= 50:
 						running = False
 
-				# points
-				screen.fill((255,255,255))
-				text_surface = font.render(f"{Black.points} points for 'Black'", False, Person.c_black)
-				screen.blit(text_surface, (5, 0))
-				text_surface = font.render(f"{Pink.points} points for 'Pink'", False, Person.c_black)
-				screen.blit(text_surface, (5, 20))
-				text_surface = font.render(f"{Blue.points} points for 'Blue'", False, Person.c_black)
-				screen.blit(text_surface, (5, 40))
-				text_surface = font.render(f"{Brown.points} points for 'Brown'", False, Person.c_black)
-				screen.blit(text_surface, (5, 60))
-				text_surface = font.render(f"{Green.points} points for 'Green'", False, Person.c_black)
-				screen.blit(text_surface, (5, 80))
-				# counts
-				w, h = screen.get_size()
-				text_surface = font.render(f"{len(Black.people)} 'Black' person", False, Person.c_black)
-				screen.blit(text_surface, (w - text_surface.get_rect().width, 0))
-				text_surface = font.render(f"{len(Pink.people)} 'Pink' person", False, Person.c_black)
-				screen.blit(text_surface, (w - text_surface.get_rect().width, 20))
-				text_surface = font.render(f"{len(Blue.people)} 'Blue' person", False, Person.c_black)
-				screen.blit(text_surface, (w - text_surface.get_rect().width, 40))
-				text_surface = font.render(f"{len(Brown.people)} 'Brown' person", False, Person.c_black)
-				screen.blit(text_surface, (w - text_surface.get_rect().width, 60))
-				text_surface = font.render(f"{len(Green.people)} 'Green' person", False, Person.c_black)
-				screen.blit(text_surface, (w - text_surface.get_rect().width, 80))
-				# change when adding new person
+					for event in pygame.event.get():
+						if event.type == pygame.QUIT:
+							running = False
 
-				for person in Person.people:
-					person.move_in_one()
+					if not running:
+						break
 
-				pygame.display.flip()
+					# counts
+					screen.fill((255,255,255))
+					text_surface = font.render(f"{len(Black.people)} 'Black' person", False, Person.c_black)
+					screen.blit(text_surface, (5, 0))
+					text_surface = font.render(f"{len(Pink.people)} 'Pink' person", False, Person.c_black)
+					screen.blit(text_surface, (5, 20))
+					text_surface = font.render(f"{len(Blue.people)} 'Blue' person", False, Person.c_black)
+					screen.blit(text_surface, (5, 40))
+					text_surface = font.render(f"{len(Brown.people)} 'Brown' person", False, Person.c_black)
+					screen.blit(text_surface, (5, 60))
+					text_surface = font.render(f"{len(Green.people)} 'Green' person", False, Person.c_black)
+					screen.blit(text_surface, (5, 80))
+					# change when adding new person
 
-			del running
-			pygame.quit()
-			Person.del_people()
-			Person.show_chart(Person.actual_people)
-			file = Path(path)
-			if path.strip().lower() == "yes":
-				file = Path("Stats.txt")
-			elif file.is_file():
-				print(f"Saved to {path}")
-				Person.write_stats(Person.actual_people, path)
-			elif file.is_dir():
-				print(f"Path is directory, not file.")
-			elif not file.exists():
-				print(f"File doesn't exist.")
-			else:
-				print(f"Unknow error.")
+					for person in Person.people:
+						person.move_in_one()
+
+					pygame.display.flip()
+
+				del running
+				Person.del_people()
+				t1.join()
+				file = Path(path)
+				if path.strip().lower() == "no":
+					pass
+				elif path.strip().lower() == "yes":
+					file = Path(f"{os.getcwd()}/stats.txt")
+					Person.write_stats(Person.actual_people, file)
+					print(f"Saved to stats.txt")
+				elif file.is_file():
+					print(f"Saved to {path}")
+					Person.write_stats(Person.actual_people, path)
+					print("saved to file")
+				elif file.is_dir():
+					print(f"Path is directory, not file.")
+				elif not file.exists():
+					print(f"File doesn't exist.")
+				else:
+					print(f"Unknow error.")
+
+			pygame.display.quit()
 		elif msg == "find" or msg == "f":
 			pass
 		elif msg == "guess" or msg == "g":
