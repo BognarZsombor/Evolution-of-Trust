@@ -383,13 +383,14 @@ if __name__ == "__main__":
 			print(f"find(f) - Find a starting position for a color to win.")
 			print(f"guess(g) - Make a starting position and let the AI guess the outcome.")
 		elif msg == "description" or msg == "d":
-			print(f"Work in progress.")
+			print(f"Evolution of Trust interactive game.\nThere are 5 different personalities:\nBlack who always cheats.\nPink who always cooperates.\nBlue who first cooperates then plays the as the his opponent played the last round.\nBrown who only cooperates with other browns.\nGreen who is similar to blue but cheats the first time.\nThere are 4 different functions:\nShow where you can see the result of past simulations on graphs.\nBasic where you can place the people any way you want and start the simulation.\nTest where you can run tests and save them to a file for reading later.\nFind where you can file a start from a file where a specific person won.")
+			print(f"Have fun!")
 		elif msg == "exit" or msg == "e":
 			print(f"Exiting from program")
 			pygame.quit()
 			sys.exit()
 		elif msg == "show" or msg == "s":
-			path = input(f"Give the file path to show(Base is 'stats.txt'): ")
+			path = input(f"Give the file path to show (Base is 'stats.txt'): ")
 			file = Path(path)
 			if path.strip().lower() == "base":
 				file = Path("stats.txt")
@@ -427,8 +428,6 @@ if __name__ == "__main__":
 							(key, val) = line.split('\t')
 							dic[key] = ast.literal_eval(val)
 					plt.show()
-
-
 			elif file.is_dir():
 				print(f"Path is a directory, not a file.")
 			elif not file.exists():
@@ -436,7 +435,7 @@ if __name__ == "__main__":
 			else:
 				print(f"Unknow error.")
 		elif msg == "basic" or msg == "b":
-			path = input(f"Do you want to save to file(if yes give path. Base is 'stats.txt'): ")
+			path = input(f"Do you want to save to file (Base is 'stats.txt'): ")
 
 			# prepare
 			pygame.display.init()
@@ -587,8 +586,10 @@ if __name__ == "__main__":
 				else:
 					print(f"Unknow error.")
 		elif msg == "test" or msg == "t":
-			path = input(f"Do you want to save to file(if yes give path. Base is 'stats.txt'): ")
+			path = input(f"Do you want to save to file? (if yes give path. Base is 'stats.txt'): ")
 			count = input(f"How many simulations do you want to run?: ")
+			grouped = input(f"Do you want to spawn people in groups of 10?: ")
+			exclude = input(f"Do you want to exclude brown?: ")
 
 			# init
 			pygame.display.init()
@@ -601,21 +602,48 @@ if __name__ == "__main__":
 			for _ in range(int(count)):
 				# prepare
 				w, h = screen.get_size()
-				for person in Person.__subclasses__():
-					for _ in range(random.randrange(10)):
-						pos = [random.randrange(50, w - 50), random.randrange(50, h - 50)]
-						for x in range(10):
-							temp_pos = list(pos)
-							temp_pos[0] += random.randint(-96, 96)
-							temp_pos[1] += random.randint(-54, 54)
-							# try till get a position inside screen
-							while not Person.in_map(temp_pos):
-								temp_pos = list(pos)
-								temp_pos[0] += random.randint(-96, 96)
-								temp_pos[1] += random.randint(-54, 54)
+				if exclude.strip().lower() == "yes":
+					for person in Person.__subclasses__():
+						if person.__name__ != "Brown":
+							if grouped.strip().lower() == "yes":
+								for _ in range(random.randrange(10)):
+									pos = [random.randrange(50, w - 50), random.randrange(50, h - 50)]
+									for x in range(10):
+										temp_pos = list(pos)
+										temp_pos[0] += random.randint(-96, 96)
+										temp_pos[1] += random.randint(-54, 54)
+										# try till get a position inside screen
+										while not Person.in_map(temp_pos):
+											temp_pos = list(pos)
+											temp_pos[0] += random.randint(-96, 96)
+											temp_pos[1] += random.randint(-54, 54)
 
-							person(temp_pos)
-							del temp_pos
+										person(temp_pos)
+										del temp_pos
+							else:
+								for _ in range(random.randrange(100)):
+									person([random.randrange(50, w - 50), random.randrange(50, h - 50)])
+				else:
+					for person in Person.__subclasses__():
+						if grouped.strip().lower() == "yes":
+							for _ in range(random.randrange(10)):
+								pos = [random.randrange(50, w - 50), random.randrange(50, h - 50)]
+								for x in range(10):
+									temp_pos = list(pos)
+									temp_pos[0] += random.randint(-96, 96)
+									temp_pos[1] += random.randint(-54, 54)
+									# try till get a position inside screen
+									while not Person.in_map(temp_pos):
+										temp_pos = list(pos)
+										temp_pos[0] += random.randint(-96, 96)
+										temp_pos[1] += random.randint(-54, 54)
+
+									person(temp_pos)
+									del temp_pos
+						else:
+							for _ in range(random.randrange(100)):
+								person([random.randrange(50, w - 50), random.randrange(50, h - 50)])
+
 
 				# simulation
 				t1 = threading.Thread(target=Person.people[0].check_evolution, args=[5])
@@ -661,7 +689,7 @@ if __name__ == "__main__":
 				file = Path(path)
 				if path.strip().lower() == "no":
 					pass
-				elif path.strip().lower() == "yes":
+				elif path.strip().lower() == "yes" or path.strip().lower() == "base":
 					file = Path(f"{os.getcwd()}/stats.txt")
 					Person.write_stats(Person.actual_people, file)
 					print(f"Saved to stats.txt")
@@ -678,9 +706,102 @@ if __name__ == "__main__":
 
 			pygame.display.quit()
 		elif msg == "find" or msg == "f":
-			pass
-		elif msg == "guess" or msg == "g":
-			pass
+			path = input(f"Give the file path to search in. (Base is 'stats.txt'): ")
+			winner = input(f"Which person do you want to win? (Give color): ")
+			file = Path(path)
+			if path.strip().lower() == "base":
+				file = Path("stats.txt")
+			if file.is_file():
+				with open(file, 'r') as f:
+					lines = f.readlines()
+					del lines[0]
+					dic = {}
+					for line in lines:
+						if represent_int(line):
+							if max(dic, key=lambda x: dic[x][-1]).lower() == winner.strip().lower():
+								# init
+								pygame.display.init()
+								screen = pygame.display.set_mode((1920,1020), pygame.RESIZABLE)
+								pygame.display.set_caption("Evolution of Trust Simulation")
+								pygame.font.init()
+								font = pygame.font.SysFont('Times New Roman', 18)
+								Person.screen = screen
+
+								for key, val in dic.items():
+									w, h = screen.get_size()
+									if val[0] % 10 == 0:
+										for _ in range(int(val[0] / 10)):
+											pos = [random.randrange(50, w - 50), random.randrange(50, h - 50)]
+											for x in range(10):
+												temp_pos = list(pos)
+												temp_pos[0] += random.randint(-96, 96)
+												temp_pos[1] += random.randint(-54, 54)
+												# try till get a position inside screen
+												while not Person.in_map(temp_pos):
+													temp_pos = list(pos)
+													temp_pos[0] += random.randint(-96, 96)
+													temp_pos[1] += random.randint(-54, 54)
+
+												eval(key)(temp_pos)
+												del temp_pos
+									else:
+										for _ in val[0]:
+											eval(key)([random.randrange(50, w - 50), random.randrange(50, h - 50)])
+
+								# simulation
+								t1 = threading.Thread(target=Person.people[0].check_evolution, args=[5])
+								t1.daemon = True
+								t1.start()
+								Person.fill_actual_people()
+								Person.get_actual_people()
+
+								running = True
+								while running:
+									if len(Person.people) == len(Black.people) or len(Person.people) == len(Pink.people) or len(Person.people) == len(Blue.people) or len(Person.people) == len(Brown.people) or len(Person.people) == len(Green.people) or len(next(iter(Person.actual_people.values()))) >= 50:
+										running = False
+
+									for event in pygame.event.get():
+										if event.type == pygame.QUIT:
+											running = False
+
+									if not running:
+										break
+
+									# counts
+									screen.fill((255,255,255))
+									text_surface = font.render(f"{len(Black.people)} 'Black' person", False, Person.c_black)
+									screen.blit(text_surface, (5, 0))
+									text_surface = font.render(f"{len(Pink.people)} 'Pink' person", False, Person.c_black)
+									screen.blit(text_surface, (5, 20))
+									text_surface = font.render(f"{len(Blue.people)} 'Blue' person", False, Person.c_black)
+									screen.blit(text_surface, (5, 40))
+									text_surface = font.render(f"{len(Brown.people)} 'Brown' person", False, Person.c_black)
+									screen.blit(text_surface, (5, 60))
+									text_surface = font.render(f"{len(Green.people)} 'Green' person", False, Person.c_black)
+									screen.blit(text_surface, (5, 80))
+									# change when adding new person
+
+									for person in Person.people:
+										person.move_in_one()
+
+									pygame.display.flip()
+
+								del running
+								Person.del_people()
+								t1.join()
+								pygame.display.quit()
+								break
+							dic = {}
+						else:
+							(key, val) = line.split('\t')
+							dic[key] = ast.literal_eval(val)
+					plt.show()
+			elif file.is_dir():
+				print(f"Path is a directory, not a file.")
+			elif not file.exists():
+				print(f"Path doesn't exist.")
+			else:
+				print(f"Unknow error.")
 		else:
 			print(f"Command not recognised.\n")
 
