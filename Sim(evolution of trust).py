@@ -1,5 +1,7 @@
 import pygame
 pygame.init()
+import colorama
+colorama.init()
 import sys
 import os
 import abc
@@ -12,6 +14,16 @@ from itertools import cycle
 from pathlib import Path
 import matplotlib.pyplot as plt
 
+class bcolors:
+	RED = '\033[31m'
+	GREEN = '\033[32m'
+	YELLOW = '\033[33m'
+	BLUE = '\033[34m'
+	MAGENTA = '\033[35m'
+	MAGENTA = '\033[35m'
+	BRIGHT_BLACK = '\033[90m'
+	NORMAL = '\033[0m'
+
 class Person(abc.ABC):
 
 	people = [] # type: List[Person]
@@ -19,6 +31,7 @@ class Person(abc.ABC):
 	radius = 10
 	speed = 5
 	screen = None
+	score_matrix = [[0, 3], [-1, 2]]
 
 	#colors
 	c_red = (179, 27, 0)
@@ -49,6 +62,7 @@ class Person(abc.ABC):
 		elif new_dir == 1:
 			self.dir[0], self.dir[1] = self.dir[1], -self.dir[0]
 		# else go forward the same way -> no change
+		del new_dir
 
 	def move(self) -> None:
 		self.out_of_map()
@@ -69,6 +83,8 @@ class Person(abc.ABC):
 		# bottom
 		elif self.pos[1] + self.dir[1] * Person.speed - Person.radius < 0:
 			self.dir[0], self.dir[1] = -self.dir[0], -self.dir[1]
+
+		del x, y
 
 	def move_in_one(self) -> None:
 		if not self.collide:
@@ -142,6 +158,7 @@ class Person(abc.ABC):
 		for key, value in dic.items():
 			plt.scatter(x, value, color=next(colors))
 		plt.show()
+		del colors, fig, x, temp_list
 
 	@staticmethod
 	def write_stats(dic, path: str) -> None:
@@ -207,20 +224,20 @@ class Black(Person):
 
 	def check_points(self, x: Person, num: int) -> None:
 		if x.__class__.__name__ == "Black":
-			self.points += 0
-			Black.points += 0
+			self.points += Person.score_matrix[0][0] * num
+			Black.points += Person.score_matrix[0][0] * num
 		elif x.__class__.__name__ == "Pink":
-			self.points += 3 * num
-			Black.points += 3 * num
+			self.points += Person.score_matrix[0][1] * num
+			Black.points += Person.score_matrix[0][1] * num
 		elif x.__class__.__name__ == "Blue":
-			self.points += 3
-			Black.points += 3
+			self.points += Person.score_matrix[0][1] + Person.score_matrix[0][0] * (num - 1)
+			Black.points += Person.score_matrix[0][1] + Person.score_matrix[0][0] * (num - 1)
 		elif x.__class__.__name__ == "Brown":
-			self.points += 0
-			Black.points += 0
+			self.points += Person.score_matrix[0][0] * num
+			Black.points += Person.score_matrix[0][0] * num
 		elif x.__class__.__name__ == "Green":
-			self.points += 0
-			Black.points += 0
+			self.points += Person.score_matrix[0][0] * num
+			Black.points += Person.score_matrix[0][0] * num
 
 class Pink(Person):
 
@@ -241,20 +258,20 @@ class Pink(Person):
 
 	def check_points(self, x: Person, num: int) -> None:
 		if x.__class__.__name__ == "Black":
-			self.points += -1 * num
-			Pink.points += -1 * num
+			self.points += Person.score_matrix[1][0] * num
+			Pink.points += Person.score_matrix[1][0] * num
 		elif x.__class__.__name__ == "Pink":
-			self.points += 2 * num
-			Pink.points += 2 * num
+			self.points += Person.score_matrix[1][1] * num
+			Pink.points += Person.score_matrix[1][1] * num
 		elif x.__class__.__name__ == "Blue":
-			self.points += 2 * num
-			Pink.points += 2 * num
+			self.points += Person.score_matrix[1][1] * num
+			Pink.points += Person.score_matrix[1][1] * num
 		elif x.__class__.__name__ == "Brown":
-			self.points += -1 * num
-			Pink.points += -1 * num
-		elif x.__class__.__name__ == "Brown":
-			self.points += -1 + 2 * (num - 1)
-			Pink.points += -1 + 2 * (num - 1)
+			self.points += Person.score_matrix[1][0] * num
+			Pink.points += Person.score_matrix[1][0] * num
+		elif x.__class__.__name__ == "Green":
+			self.points += Person.score_matrix[1][0] + Person.score_matrix[1][1] * num
+			Pink.points += Person.score_matrix[1][0] + Person.score_matrix[1][1] * num
 
 class Blue(Person):
 
@@ -275,20 +292,20 @@ class Blue(Person):
 
 	def check_points(self, x: Person, num: int) -> None:
 		if x.__class__.__name__ == "Black":
-			self.points += -1
-			Blue.points += -1
+			self.points += Person.score_matrix[1][0] + Person.score_matrix[0][0] * (num - 1)
+			Blue.points += Person.score_matrix[1][0] + Person.score_matrix[0][0] * (num - 1)
 		elif x.__class__.__name__ == "Pink":
-			self.points += 2 * num
-			Blue.points += 2 * num
+			self.points += Person.score_matrix[1][1] * num
+			Blue.points += Person.score_matrix[1][1] * num
 		elif x.__class__.__name__ == "Blue":
-			self.points += 2 * num
-			Blue.points += 2 * num
+			self.points += Person.score_matrix[1][1] * num
+			Blue.points += Person.score_matrix[1][1] * num
 		elif x.__class__.__name__ == "Brown":
-			self.points += -1
-			Blue.points += -1
+			self.points += Person.score_matrix[1][0] + Person.score_matrix[0][0] * (num - 1)
+			Blue.points += Person.score_matrix[1][0] + Person.score_matrix[0][0] * (num - 1)
 		elif x.__class__.__name__ == "Green":
-			self.points += (-1 + 3) + 2 * (num - 2)
-			Blue.points += (-1 + 3) + 2 * (num - 2)
+			self.points += Person.score_matrix[1][0] * math.ceil(num / 2) + Person.score_matrix[0][1] * int(num / 2)
+			Blue.points += Person.score_matrix[1][0] * math.ceil(num / 2) + Person.score_matrix[0][1] * int(num / 2)
 
 class Brown(Person):
 
@@ -309,20 +326,20 @@ class Brown(Person):
 
 	def check_points(self, x: Person, num: int) -> None:
 		if x.__class__.__name__ == "Black":
-			self.points += 0
-			Brown.points += 0
+			self.points += Person.score_matrix[0][0] * num
+			Brown.points += Person.score_matrix[0][0] * num
 		elif x.__class__.__name__ == "Pink":
-			self.points += 3 * num
-			Brown.points += 3 * num
+			self.points += Person.score_matrix[0][1] * num
+			Brown.points += Person.score_matrix[0][1] * num
 		elif x.__class__.__name__ == "Blue":
-			self.points += 3
-			Brown.points += 3
+			self.points += Person.score_matrix[0][1] + Person.score_matrix[0][0] * (num - 1)
+			Brown.points += Person.score_matrix[0][1] + Person.score_matrix[0][0] * (num - 1)
 		elif x.__class__.__name__ == "Brown":
-			self.points += 2 * num
-			Brown.points += 2 * num
+			self.points += Person.score_matrix[1][1] * num
+			Brown.points += Person.score_matrix[1][1] * num
 		elif x.__class__.__name__ == "Green":
-			self.points += 0
-			Brown.points += 0
+			self.points += Person.score_matrix[0][0] * num
+			Brown.points += Person.score_matrix[0][0] * num
 
 class Green(Person):
 
@@ -343,20 +360,20 @@ class Green(Person):
 
 	def check_points(self, x: Person, num: int) -> None:
 		if x.__class__.__name__ == "Black":
-			self.points += 0
-			Green.points += 0
+			self.points += Person.score_matrix[0][0] * num
+			Green.points += Person.score_matrix[0][0] * num
 		elif x.__class__.__name__ == "Pink":
-			self.points += 3 + 2 * (num - 1)
-			Green.points += 3 + 2 * (num - 1)
+			self.points += Person.score_matrix[0][1] + Person.score_matrix[1][1] * (num - 1)
+			Green.points += Person.score_matrix[0][1] + Person.score_matrix[1][1] * (num - 1)
 		elif x.__class__.__name__ == "Blue":
-			self.points += (3 - 1) + 2 * (num - 2)
-			Green.points += (3 - 1) + 2 * (num - 2)
+			self.points += Person.score_matrix[0][1] * math.ceil(num / 2) + Person.score_matrix[1][0] * int(num / 2)
+			Green.points += Person.score_matrix[0][1] * math.ceil(num / 2) + Person.score_matrix[1][0] * int(num / 2)
 		elif x.__class__.__name__ == "Brown":
-			self.points += 0
-			Green.points += 0
+			self.points += Person.score_matrix[0][0] * num
+			Green.points += Person.score_matrix[0][0] * num
 		elif x.__class__.__name__ == "Green":
-			self.points += 0
-			Green.points += 0
+			self.points += Person.score_matrix[0][0] * num
+			Green.points += Person.score_matrix[0][0] * num
 
 def represent_int(s):
 	try:
@@ -383,7 +400,7 @@ if __name__ == "__main__":
 			print(f"find(f) - Find a starting position for a color to win.")
 			print(f"guess(g) - Make a starting position and let the AI guess the outcome.")
 		elif msg == "description" or msg == "d":
-			print(f"Evolution of Trust interactive game.\nThere are 5 different personalities:\nBlack who always cheats.\nPink who always cooperates.\nBlue who first cooperates then plays the as the his opponent played the last round.\nBrown who only cooperates with other browns.\nGreen who is similar to blue but cheats the first time.\nThere are 4 different functions:\nShow where you can see the result of past simulations on graphs.\nBasic where you can place the people any way you want and start the simulation.\nTest where you can run tests and save them to a file for reading later.\nFind where you can file a start from a file where a specific person won.")
+			print(f"Evolution of Trust interactive game.\nThere are 5 different personalities:\n{bcolors.BRIGHT_BLACK}Black{bcolors.NORMAL} who always cheats.\n{bcolors.MAGENTA}Pink{bcolors.NORMAL} who always cooperates.\n{bcolors.BLUE}Blue{bcolors.NORMAL} who first cooperates then plays the as the his opponent played the last round.\n{bcolors.YELLOW}Brown{bcolors.NORMAL} who only cooperates with other browns.\n{bcolors.GREEN}Green{bcolors.NORMAL} who is similar to blue but cheats the first time.\nThere are 4 different functions:\nShow where you can see the result of past simulations on graphs.\nBasic where you can place the people any way you want and start the simulation.\nTest where you can run tests and save them to a file for reading later.\nFind where you can read a start from a file where a specific person won.")
 			print(f"Have fun!")
 		elif msg == "exit" or msg == "e":
 			print(f"Exiting from program")
@@ -572,7 +589,7 @@ if __name__ == "__main__":
 				file = Path(path)
 				if path.strip().lower() == "no":
 					pass
-				elif path.strip().lower() == "yes":
+				elif path.strip().lower() == "yes" or path.strip().lower() == "base":
 					file = Path(f"{os.getcwd()}/stats.txt")
 					Person.write_stats(Person.actual_people, file)
 					print(f"Saved to stats.txt")
@@ -587,9 +604,9 @@ if __name__ == "__main__":
 					print(f"Unknow error.")
 		elif msg == "test" or msg == "t":
 			path = input(f"Do you want to save to file? (if yes give path. Base is 'stats.txt'): ")
-			count = input(f"How many simulations do you want to run?: ")
-			grouped = input(f"Do you want to spawn people in groups of 10?: ")
-			exclude = input(f"Do you want to exclude brown?: ")
+			count = input(f"How many simulations do you want to run? ")
+			grouped = input(f"Do you want to spawn people in groups of 10? ")
+			exclude = input(f"Do you want to exclude brown? ")
 
 			# init
 			pygame.display.init()
