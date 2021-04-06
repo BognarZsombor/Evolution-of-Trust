@@ -611,7 +611,7 @@ if __name__ == "__main__":
 			# init
 			pygame.display.init()
 			screen = pygame.display.set_mode((1920,1020), pygame.RESIZABLE)
-			pygame.display.set_caption("Evolution of Trust Simulation")
+			pygame.display.set_caption("Evolution of Trust Simulation (test)")
 			pygame.font.init()
 			font = pygame.font.SysFont('Times New Roman', 18)
 			Person.screen = screen
@@ -739,7 +739,7 @@ if __name__ == "__main__":
 								# init
 								pygame.display.init()
 								screen = pygame.display.set_mode((1920,1020), pygame.RESIZABLE)
-								pygame.display.set_caption("Evolution of Trust Simulation")
+								pygame.display.set_caption("Evolution of Trust Simulation (find)")
 								pygame.font.init()
 								font = pygame.font.SysFont('Times New Roman', 18)
 								Person.screen = screen
